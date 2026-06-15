@@ -88,3 +88,7 @@ func(s *Service) UpdateUser(ctx context.Context, params sqlc.UpdateUserParams)(m
 
 	return mapUserResponse(user),nil
 }
+
+func(s*Service) DeleteUser(ctx context.Context, id int32)error{
+	return s.repo.DeleteUser(ctx,id)
+}

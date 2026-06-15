@@ -9,10 +9,13 @@ import (
 	"time"
 
 	"github.com/axizkhan/go_postgresSQL/config"
+	handler "github.com/axizkhan/go_postgresSQL/internal/handler/http"
 	"github.com/axizkhan/go_postgresSQL/internal/logger"
 	"github.com/axizkhan/go_postgresSQL/internal/repository/postgres"
 	"github.com/axizkhan/go_postgresSQL/internal/service/user"
 	"github.com/axizkhan/go_postgresSQL/pkg/database"
+	validatorPkg "github.com/axizkhan/go_postgresSQL/pkg/validator"
+
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )
@@ -26,6 +29,7 @@ func main() {
 	defer logger.Sync()
 
 	logger.Log.Info("configuration loaded",zap.String("enviorment",cfg.AppEnv),zap.String("port",cfg.Port))
+	validatorPkg.Init()
 
 	db:=database.NewPostgresConnection(cfg.DatabaseURL)
 	defer db.Close(context.Background())
@@ -33,11 +37,13 @@ func main() {
 	logger.Log.Info("Databse Connected")
 	repo := postgres.NewUserRepository(db)
 	
-	userService := user.NewService(repo)
+	service := user.NewService(repo)
+
+	userHandler := handler.NewUserHandler(service)
 
 	logger.Log.Info(
 	"user service initialized",
-	zap.Any("service", userService),
+	zap.Any("service", service),
 )
 
 	app:=fiber.New(fiber.Config{AppName: "User DOB API"})
@@ -47,6 +53,16 @@ func main() {
 			"status":"ok",
 		})
 	})
+
+	app.Post("/users", userHandler.CreateUser)
+
+app.Get("/users/:id", userHandler.GetUserById)
+
+app.Get("/users", userHandler.ListUser)
+
+app.Put("/users/:id", userHandler.UpdateUser)
+
+app.Delete("/users/:id", userHandler.DeleteUser)
 
 	quit:=make(chan os.Signal,1)
 
