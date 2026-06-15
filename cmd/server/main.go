@@ -11,6 +11,7 @@ import (
 	"github.com/axizkhan/go_postgresSQL/config"
 	"github.com/axizkhan/go_postgresSQL/internal/logger"
 	"github.com/axizkhan/go_postgresSQL/internal/repository/postgres"
+	"github.com/axizkhan/go_postgresSQL/internal/service/user"
 	"github.com/axizkhan/go_postgresSQL/pkg/database"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -31,7 +32,13 @@ func main() {
 
 	logger.Log.Info("Databse Connected")
 	repo := postgres.NewUserRepository(db)
-	logger.Log.Info("repository Initialized",zap.Any("repo",repo))
+	
+	userService := user.NewService(repo)
+
+	logger.Log.Info(
+	"user service initialized",
+	zap.Any("service", userService),
+)
 
 	app:=fiber.New(fiber.Config{AppName: "User DOB API"})
 
