@@ -21,18 +21,29 @@ func LoadConfig()*Config {
 	}
 
 	config:= &Config{
-		Port: os.Getenv("PORT"),
-		AppEnv: os.Getenv("APP_ENV"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
+		Port: Getenv("PORT","8080"),
+		AppEnv: Getenv("APP_ENV","development"),
+		DatabaseURL: RequiredEnv("DATABASE_URL"),
 	}
 
-	if config.Port == ""{
-		log.Fatal("PORT is required")
-	}
-
-	if config.DatabaseURL==""{
-		log.Fatal("DATABASE_URL is required")
-	}
+	
 
 	return config
+}
+
+func Getenv(key string, fallback string) string{
+	value:=os.Getenv(key)
+	if value==""{
+		return fallback
+	}
+	return value
+}
+
+func RequiredEnv(key string) string{
+	value:=os.Getenv(key)
+
+	if value==""{
+		log.Fatalf("%s is not in .env" ,key)
+	}
+	return value
 }

@@ -4,9 +4,19 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewLogger() *zap.Logger{
+var Log *zap.Logger
 
-	logger,_:=zap.NewProduction()
+func Init() {
 
-	return logger
+	logger,err:=zap.NewProduction()
+
+	if err !=nil{
+		panic(err)
+	}
+
+	Log=logger
+}
+
+func Sync(){
+	_=Log.Sync()
 }
