@@ -8,3 +8,6 @@ migratedown:
 
 migrationforce:
 	migrate -path db/migrations -database "$(DATABASE_URL)" force 1
+
+sqlc:
+	sqlc generate
