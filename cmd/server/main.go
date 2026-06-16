@@ -12,11 +12,15 @@ import (
 	handler "github.com/axizkhan/go_postgresSQL/internal/handler/http"
 	"github.com/axizkhan/go_postgresSQL/internal/logger"
 	"github.com/axizkhan/go_postgresSQL/internal/repository/postgres"
+	"github.com/axizkhan/go_postgresSQL/internal/routes"
 	"github.com/axizkhan/go_postgresSQL/internal/service/user"
 	"github.com/axizkhan/go_postgresSQL/pkg/database"
 	validatorPkg "github.com/axizkhan/go_postgresSQL/pkg/validator"
 
 	"github.com/gofiber/fiber/v2"
+	fiberLogger "github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"go.uber.org/zap"
 )
 
@@ -46,23 +50,33 @@ func main() {
 	zap.Any("service", service),
 )
 
-	app:=fiber.New(fiber.Config{AppName: "User DOB API"})
+	app:=fiber.New(fiber.Config{AppName: "User DOB API",
+	ErrorHandler: func(c *fiber.Ctx, err error)error{
+		code := fiber.StatusInternalServerError
 
-	app.Get("/health",func(c*fiber.Ctx)error{
-		return c.JSON(fiber.Map{
-			"status":"ok",
-		})
-	})
+		if e,ok := err.(*fiber.Error); ok{code = e.Code}
 
-	app.Post("/users", userHandler.CreateUser)
+		return  c.Status(code).JSON(
+			fiber.Map{
+				"success": false,
+				"error":   err.Error(),
+			},
+		)
+	},
+})
 
-app.Get("/users/:id", userHandler.GetUserById)
 
-app.Get("/users", userHandler.ListUser)
+	app.Use(requestid.New())
+	app.Use(recover.New())
+	app.Use(
+		fiberLogger.New(fiberLogger.Config{
+			Format: "[${time}] ${status} - ${method} ${path}\n",
+		},),
+	)
 
-app.Put("/users/:id", userHandler.UpdateUser)
 
-app.Delete("/users/:id", userHandler.DeleteUser)
+
+	routes.SetupRoutes(app,userHandler)
 
 	quit:=make(chan os.Signal,1)
 
