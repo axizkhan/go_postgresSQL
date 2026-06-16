@@ -9,6 +9,7 @@ import (
 	"github.com/axizkhan/go_postgresSQL/db/sqlc"
 	"github.com/axizkhan/go_postgresSQL/internal/models"
 	userService "github.com/axizkhan/go_postgresSQL/internal/service/user"
+	"github.com/axizkhan/go_postgresSQL/pkg/utils"
 	validatorPkg "github.com/axizkhan/go_postgresSQL/pkg/validator"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -27,29 +28,26 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error{
 	var req models.CreateUserRequest
 
 	if err:= c.BodyParser(&req); err!=nil{
-		return c.Status(fiber.StatusBadRequest).JSON(
-			fiber.Map{
-				"success":false,
-				"error":"invalid request body",
-			},
+		return utils.Error(
+			c,
+			fiber.StatusBadRequest,
+			"Invalid request body",
 		)
 	}
 
 	if err:=validatorPkg.Validate.Struct(req); err!=nil{
-		return c.Status(fiber.StatusBadRequest).JSON(
-			fiber.Map{
-				"success":false,
-				"error":"invalid request body",
-			},
+		return utils.Error(
+			c,
+			fiber.StatusBadRequest,
+			"Invalid request body",
 		)
 	}
 
 	if req.DOB.After(time.Now()){
-		return c.Status(fiber.StatusBadRequest).JSON(
-			fiber.Map{
-				"success":false,
-				"error":"invalid request body",
-			},
+		return utils.Error(
+			c,
+			fiber.StatusBadRequest,
+			"Invalid request body",
 		)
 	}
 
@@ -59,18 +57,18 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error{
 },},)
 
 	if err != nil{
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			fiber.Map{
-				"success": false,
-				"error":   err.Error(),
-			},
+		return utils.Error(
+			c,
+			fiber.StatusInternalServerError,
+			err.Error(),
 		)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"success":true,
-		"data":user,
-	})
+	return utils.Success(
+		c,
+		fiber.StatusOK,
+		user,
+	)
 
 }
 
@@ -80,52 +78,55 @@ func (h *UserHandler) GetUserById(c *fiber.Ctx)error{
 	id,err:=strconv.ParseInt(idParam,10,32)
 
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success":false,
-			"error":"invalid user id",
-		},)
+		return utils.Error(
+			c,
+			fiber.StatusBadRequest,
+			err.Error(),
+		)
 	}
 
 	user,err:=h.service.GetUserById(c.Context(),int32(id))
 
 	if err != nil{
-		return c.Status(fiber.StatusNotFound).JSON(
-			fiber.Map{
-				"success": false,
-				"error":   err.Error(),
-			},
+		return utils.Error(
+			c,
+			fiber.StatusNotFound,
+			err.Error(),
 		)
 	}
 
 
-	return c.JSON(
-		fiber.Map{
-			"success": true,
-			"data":    user,
-		},
+	return utils.Success(
+		c,
+		fiber.StatusOK,
+		user,
 	)
 }
 
 func (h *UserHandler) ListUser(c *fiber.Ctx,) error{
+
+	page,_ := strconv.Atoi(c.Query("page","1"))
+	limit,_ := strconv.Atoi(c.Query("limit","10"))
+
+	parsedLimit, offset := utils.GetPagination(page,limit)
+
 	users, err := h.service.ListUsers(
-		c.Context(),10,0,
+		c.Context(),parsedLimit,offset,
 	)
 
 	if err != nil {
 
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			fiber.Map{
-				"success": false,
-				"error":   err.Error(),
-			},
+		return utils.Error(
+			c,
+			fiber.StatusInternalServerError,
+			err.Error(),
 		)
 	}
 
-	return c.JSON(
-		fiber.Map{
-			"success": true,
-			"data":    users,
-		},
+	return utils.Success(
+		c,
+		fiber.StatusOK,
+		users,
 	)
 }
 
@@ -141,33 +142,30 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx,) error {
 
 	if err != nil {
 
-		return c.Status(fiber.StatusBadRequest).JSON(
-			fiber.Map{
-				"success": false,
-				"error":   "invalid user id",
-			},
+		return utils.Error(
+			c,
+			fiber.StatusBadRequest,
+			err.Error(),
 		)
 	}
 
 	var req models.UpdateUserRequest
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			fiber.Map{
-				"success": false,
-				"error":   "invalid request body",
-			},
+		return utils.Error(
+			c,
+			fiber.StatusBadRequest,
+			err.Error(),
 		)
 	}
 
 
 	if err := validatorPkg.Validate.Struct(req); err != nil {
 
-		return c.Status(fiber.StatusBadRequest).JSON(
-			fiber.Map{
-				"success": false,
-				"error":   err.Error(),
-			},
+		return utils.Error(
+			c,
+			fiber.StatusBadRequest,
+			err.Error(),
 		)
 	}
 
@@ -185,20 +183,17 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx,) error {
 
 	
 	if err != nil {
-
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			fiber.Map{
-				"success": false,
-				"error":   err.Error(),
-			},
+return utils.Error(
+			c,
+			fiber.StatusInternalServerError,
+			err.Error(),
 		)
 	}
 
-	return c.JSON(
-		fiber.Map{
-			"success":true,
-			"data":user,
-		},
+	return utils.Success(
+		c,
+		fiber.StatusOK,
+		user,
 	)
 
 }
@@ -217,11 +212,10 @@ func (h *UserHandler) DeleteUser(
 
 	if err != nil {
 
-		return c.Status(fiber.StatusBadRequest).JSON(
-			fiber.Map{
-				"success": false,
-				"error":   "invalid user id",
-			},
+		return utils.Error(
+			c,
+			fiber.StatusBadRequest,
+			err.Error(),
 		)
 	}
 
@@ -232,18 +226,16 @@ func (h *UserHandler) DeleteUser(
 
 	if err != nil {
 
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			fiber.Map{
-				"success": false,
-				"error":   err.Error(),
-			},
+		return utils.Error(
+			c,
+			fiber.StatusInternalServerError,
+			err.Error(),
 		)
 	}
 
-	return c.JSON(
-		fiber.Map{
-			"success": true,
-			"message": "user deleted successfully",
-		},
+	return utils.Success(
+		c,
+		fiber.StatusOK,
+		"User deleted",
 	)
 }
