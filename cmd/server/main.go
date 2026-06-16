@@ -35,6 +35,8 @@ func main() {
 	logger.Log.Info("configuration loaded",zap.String("enviorment",cfg.AppEnv),zap.String("port",cfg.Port))
 	validatorPkg.Init()
 
+	fmt.Println("DATABASE_URL =", cfg.DatabaseURL)
+
 	db:=database.NewPostgresConnection(cfg.DatabaseURL)
 	defer db.Close(context.Background())
 

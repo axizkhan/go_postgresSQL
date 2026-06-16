@@ -11,3 +11,9 @@ migrationforce:
 
 sqlc:
 	sqlc generate
+
+dockerbuild:
+	sudo docker build -t user-dob-api .
+
+dockerup:
+	sudo docker compose up --build

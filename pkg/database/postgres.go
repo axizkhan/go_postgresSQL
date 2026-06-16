@@ -3,17 +3,37 @@ package database
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func NewPostgresConnection(databaseURL string) *pgx.Conn{
-	conn,err := pgx.Connect(context.Background(),databaseURL)
+func NewPostgresConnection(databaseURL string) *pgx.Conn {
+	var conn *pgx.Conn
+	var err error
 
-	if err != nil{
-		log.Fatal("Failed to connect to database: ",err)
+	for i := 0; i < 10; i++ {
+
+		conn, err = pgx.Connect(
+			context.Background(),
+			databaseURL,
+		)
+
+		if err == nil {
+			log.Println("Connected to PostgreSQL")
+			return conn
+		}
+
+		log.Printf(
+			"Database not ready yet, retrying (%d/10): %v",
+			i+1,
+			err,
+		)
+
+		time.Sleep(3 * time.Second)
 	}
-	 log.Println("Connect to database successfully")
 
-	 return conn
+	log.Fatal("Failed to connect to database:", err)
+
+	return nil
 }
